@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tempo-Concetto: Crono-Aion Dashboard</title>
+
+<!-- PWA: manifest e íconos -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="description" content="Simulador interactivo de Kairos, Aion y Chronos para decisiones ágiles de proyecto.">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<!-- Soporte para instalación en iOS (Add to Home Screen) -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tempo-Concetto">
+
+<!-- Soporte para instalación en Android/Chrome -->
+<meta name="mobile-web-app-capable" content="yes">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --kairos-color: #38bdf8;
+    --kairos-glow: rgba(56, 189, 248, 0.55);
+  }
+
+  body {
+    background: radial-gradient(circle at top, #0f172a 0%, #020617 60%, #000000 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Núcleo Kairos */
+  .kairos-core {
+    background: radial-gradient(circle at 35% 30%, var(--kairos-color), #0c4a6e 75%);
+    box-shadow: 0 0 40px 10px var(--kairos-glow), inset 0 0 30px rgba(255,255,255,0.15);
+    transition: background 0.8s ease, box-shadow 0.8s ease;
+    animation: kairos-pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes kairos-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .kairos-core.pulse-fast {
+    animation: kairos-pulse-fast 0.9s ease-in-out infinite;
+  }
+
+  @keyframes kairos-pulse-fast {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.09); }
+  }
+
+  /* Anillo Aion */
+  .aion-ring {
+    transition: stroke-dashoffset 1.2s ease, stroke 1.2s ease;
+    stroke-linecap: round;
+  }
+
+  /* Fricción Chronos */
+  .friction-zone {
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(248, 113, 113, 0.85),
+      rgba(248, 113, 113, 0.85) 6px,
+      rgba(127, 29, 29, 0.85) 6px,
+      rgba(127, 29, 29, 0.85) 12px
+    );
+    transition: opacity 0.8s ease, width 0.8s ease;
+  }
+
+  .chronos-fill {
+    transition: width 1s ease;
+  }
+
+  .modal-backdrop {
+    backdrop-filter: blur(6px);
+  }
+
+  .fade-in {
+    animation: fadeIn 0.35s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    backdrop-filter: blur(10px);
+  }
+
+  .sim-btn {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.3s ease;
+  }
+  .sim-btn:hover {
+    transform: translateY(-3px);
+  }
+  .sim-btn:active {
+    transform: translateY(0px) scale(0.98);
+  }
+
+  .status-flash {
+    animation: statusFlash 1.5s ease;
+  }
+  @keyframes statusFlash {
+    0% { background-color: rgba(250, 204, 21, 0.25); }
+    100% { background-color: transparent; }
+  }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+  .tab-btn {
+    background: rgba(30, 41, 59, 0.6);
+    color: #cbd5e1;
+  }
+  .tab-btn.tab-active {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: #ffffff;
+  }
+
+  .practice-card.card-active {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body class="min-h-screen text-slate-200 pb-16">
+
+  <!-- ENCABEZADO -->
+  <header class="w-full px-4 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800/60">
+    <div class="text-center sm:text-left">
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+        Tempo-Concetto: <span class="text-sky-400">Crono-Aion</span> Dashboard
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400 mt-1">Un simulador de decisiones estratégicas a través del tiempo del proyecto</p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap justify-center">
+      <button id="btnInstall" class="hidden sim-btn shrink-0 bg-sky-600 hover:bg-sky-500 border border-sky-400 text-white font-semibold px-5 py-3 rounded-xl shadow-lg items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 6.75l-3.75-3.75M12 16.5l3.75-3.75M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+        </svg>
+        Instalar App
+      </button>
+      <button id="btnFilosofico"
+        class="sim-btn shrink-0 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 font-semibold px-5 py-3 rounded-xl shadow-lg flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+        </svg>
+        Sustento Filosófico
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-8 mt-10 flex flex-col items-center gap-12">
+
+    <!-- ESTADO ACTUAL -->
+    <div id="statusBanner" class="w-full max-w-3xl text-center glass-panel rounded-2xl py-3 px-4">
+      <p id="statusText" class="text-sm sm:text-base text-slate-300">Estado actual: <span class="text-sky-400 font-semibold">Equilibrio inicial</span>. Elige una decisión abajo para simular su impacto.</p>
+    </div>
+
+    <!-- VISUALIZADOR KAIROS + AION -->
+    <div class="relative flex items-center justify-center w-[280px] h-[280px] sm:w-[360px] sm:h-[360px]">
+      <!-- Anillo Aion (SVG) -->
+      <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="90" stroke="#1e293b" stroke-width="10" fill="none"></circle>
+        <circle id="aionRing" class="aion-ring" cx="100" cy="100" r="90" stroke="#22d3ee" stroke-width="10" fill="none"
+          stroke-dasharray="565.48" stroke-dashoffset="311.5"></circle>
+      </svg>
+
+      <!-- Núcleo Kairos -->
+      <div id="kairosCore" class="kairos-core relative z-10 w-40 h-40 sm:w-52 sm:h-52 rounded-full flex flex-col items-center justify-center text-center shadow-2xl">
+        <span class="text-xs sm:text-sm uppercase tracking-widest text-white/80 font-semibold">Kairos</span>
+        <span id="kairosLabel" class="text-sm sm:text-base font-bold text-white mt-1 px-3">Momento oportuno</span>
+      </div>
+
+      <!-- Etiqueta Aion flotante -->
+      <div class="absolute -bottom-2 sm:bottom-2 flex flex-col items-center">
+        <span class="text-[10px] sm:text-xs uppercase tracking-widest text-cyan-300 font-semibold">Aion</span>
+        <span id="aionPercent" class="text-lg sm:text-xl font-bold text-white">45%</span>
+      </div>
+    </div>
+
+    <!-- CHRONOS: BARRA DE SPRINT -->
+    <div class="w-full max-w-3xl">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm sm:text-base font-semibold text-slate-200 uppercase tracking-wide">Chronos · Progreso lineal del Sprint</h2>
+        <span id="chronosDayLabel" class="text-xs sm:text-sm text-slate-400">Día 6 de 14</span>
+      </div>
+      <div class="relative w-full h-8 sm:h-10 rounded-full bg-slate-800/80 overflow-hidden border border-slate-700">
+        <div id="chronosFill" class="chronos-fill h-full bg-gradient-to-r from-sky-600 to-sky-400" style="width: 43%;"></div>
+        <div id="chronosFriction" class="friction-zone absolute top-0 h-full opacity-40" style="left: 30%; width: 15%;"></div>
+      </div>
+      <p id="chronosNote" class="text-xs sm:text-sm text-slate-400 mt-2">La zona rayada indica fricción o deuda técnica acumulada dentro del sprint.</p>
+    </div>
+
+    <!-- ALERTA DE MANIPULACIÓN DE MÉTRICAS -->
+    <div id="metricAlert" class="hidden w-full max-w-3xl border border-amber-500/50 bg-amber-950/40 text-amber-200 rounded-xl px-5 py-4 fade-in">
+      <div class="flex items-start gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 shrink-0 text-amber-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <div>
+          <p id="alertTitle" class="font-semibold text-amber-300">Alerta: manipulación de métricas detectada</p>
+          <p id="alertMsg" class="text-sm text-amber-200/90 mt-1">Re-estimar historias el último día del sprint distorsiona el Chronos real: el equipo aparenta más velocidad de la que efectivamente entregó, erosionando la confianza (Aion) a largo plazo, aunque el reloj (Chronos) no se detiene para nadie.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- BIBLIOTECA DE PRÁCTICAS -->
+    <div class="w-full max-w-5xl">
+      <h2 class="text-center text-sm sm:text-base font-semibold text-slate-300 uppercase tracking-wide mb-1">Biblioteca de prácticas y decisiones</h2>
+      <p class="text-center text-xs sm:text-sm text-slate-500 mb-5">Explora por dimensión y elige una práctica para simular su impacto en Kairos, Aion y Chronos.</p>
+
+      <!-- Pestañas -->
+      <div class="flex justify-center gap-2 mb-6 flex-wrap">
+        <button data-tab="chronos" class="tab-btn sim-btn px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border border-slate-600">Chronos · Flujo continuo</button>
+        <button data-tab="kairos" class="tab-btn sim-btn px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border border-slate-600">Kairos · Momento oportuno</button>
+        <button data-tab="aion" class="tab-btn sim-btn px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border border-slate-600">Aion · Sostenibilidad cultural</button>
+      </div>
+
+      <!-- Panel: Chronos -->
+      <div class="tab-panel" data-panel="chronos">
+        <h3 class="flex items-center gap-2 text-sm font-semibold text-emerald-400 mb-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Decisiones para proteger el flujo continuo
+        </h3>
+        <div id="grid-chronos-saludable" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+
+        <h3 class="flex items-center gap-2 text-sm font-semibold text-amber-400 mb-3">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span> Anti-patrones de gestión del flujo
+        </h3>
+        <div id="grid-chronos-anti" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- Panel: Kairos -->
+      <div class="tab-panel hidden" data-panel="kairos">
+        <h3 class="flex items-center gap-2 text-sm font-semibold text-emerald-400 mb-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Decisiones para el momento oportuno
+        </h3>
+        <div id="grid-kairos-saludable" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+
+        <h3 class="flex items-center gap-2 text-sm font-semibold text-red-400 mb-3">
+          <span class="w-2 h-2 rounded-full bg-red-400"></span> Anti-patrones de oportunidad y producto
+        </h3>
+        <div id="grid-kairos-anti" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- Panel: Aion -->
+      <div class="tab-panel hidden" data-panel="aion">
+        <h3 class="flex items-center gap-2 text-sm font-semibold text-emerald-400 mb-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Decisiones para la sostenibilidad cultural
+        </h3>
+        <div id="grid-aion-saludable" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+
+        <h3 class="flex items-center gap-2 text-sm font-semibold text-red-400 mb-3">
+          <span class="w-2 h-2 rounded-full bg-red-400"></span> Anti-patrones de cultura y personas
+        </h3>
+        <div id="grid-aion-anti" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+      </div>
+
+      <div class="flex justify-center mt-8">
+        <button id="btnReset" class="sim-btn flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 font-medium px-5 py-2.5 rounded-xl shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          Volver a Equilibrio inicial
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: SUSTENTO FILOSÓFICO -->
+  <div id="modalOverlay" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/60 flex items-center justify-center px-4">
+    <div class="fade-in glass-panel max-w-2xl w-full rounded-2xl border border-slate-700 shadow-2xl max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 sticky top-0 bg-slate-900/90 backdrop-blur">
+        <h3 class="text-lg sm:text-xl font-bold text-white">Sustento Filosófico del Tiempo</h3>
+        <button id="closeModal" class="text-slate-400 hover:text-white text-2xl leading-none px-2">&times;</button>
+      </div>
+      <div class="px-6 py-5 space-y-5 text-sm sm:text-base text-slate-300">
+        <div class="border-l-4 border-sky-500 pl-4">
+          <h4 class="font-semibold text-sky-400">Chronos frente a Kairos</h4>
+          <p class="mt-1">Medir el avance de un proyecto únicamente por los días transcurridos —Chronos— crea la ilusión de control, pero esconde un riesgo profundo: acelerar a ciegas. Un cronograma cumplido no garantiza que se haya tomado la decisión correcta. La verdadera agilidad no consiste en llegar rápido, sino en llegar en el momento oportuno: Kairos es la capacidad de reconocer cuándo lanzar, cuándo esperar y cuándo detenerse, incluso si eso significa desviarse del plan original.</p>
+        </div>
+
+        <div class="border-l-4 border-cyan-400 pl-4">
+          <h4 class="font-semibold text-cyan-300">Aion y la sostenibilidad del equipo</h4>
+          <p class="mt-1">Cuando la presión por entregar se resuelve con parches, atajos técnicos o datos maquillados para simular avance, el costo no aparece de inmediato en el tablero de control, pero sí en las personas. Cada entrega forzada erosiona la confianza y la seguridad psicológica del equipo, y con el tiempo compromete su capacidad de sostener el ritmo de trabajo. Aion nos recuerda que un equipo no es una máquina que se acelera sin consecuencias: es un sistema vivo cuya salud determina la viabilidad del proyecto a largo plazo.</p>
+        </div>
+
+        <div class="border-l-4 border-slate-400 pl-4">
+          <h4 class="font-semibold text-slate-200">Conclusión ejecutiva</h4>
+          <p class="mt-1">Incorporar esta visión en un Consejo Directivo transforma la manera en que se evalúa el éxito de un proyecto. La pregunta deja de ser únicamente "¿cumplimos la fecha?" para convertirse en "¿entregamos valor real, con calidad y sin comprometer al equipo que lo hizo posible?". Priorizar Kairos y Aion sobre un cronograma rígido no es sacrificar resultados: es proteger la sostenibilidad de esos resultados en el tiempo, y con ello, la capacidad misma de la organización para seguir innovando.</p>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-700 flex justify-end sticky bottom-0 bg-slate-900/90 backdrop-blur">
+        <button id="closeModalBtn" class="sim-btn bg-sky-600 hover:bg-sky-500 text-white font-semibold px-5 py-2 rounded-lg">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center text-xs text-slate-600 mt-16">
+    Tempo-Concetto · Simulador conceptual de tiempo en gestión ágil de proyectos
+  </footer>
+
+<script>
+  // ---------- ELEMENTOS ----------
+  const kairosCore = document.getElementById('kairosCore');
+  const kairosLabel = document.getElementById('kairosLabel');
+  const aionRing = document.getElementById('aionRing');
+  const aionPercent = document.getElementById('aionPercent');
+  const chronosFill = document.getElementById('chronosFill');
+  const chronosFriction = document.getElementById('chronosFriction');
+  const chronosNote = document.getElementById('chronosNote');
+  const statusBanner = document.getElementById('statusBanner');
+  const statusText = document.getElementById('statusText');
+  const metricAlert = document.getElementById('metricAlert');
+
+  const alertTitle = document.getElementById('alertTitle');
+  const alertMsg = document.getElementById('alertMsg');
+  const btnReset = document.getElementById('btnReset');
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  const btnFilosofico = document.getElementById('btnFilosofico');
+  const btnInstall = document.getElementById('btnInstall');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const closeModal = document.getElementById('closeModal');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+
+  // Circunferencia del anillo Aion (r=90) => 2 * PI * 90 ≈ 565.48
+  const AION_CIRCUMFERENCE = 565.48;
+
+  function setAion(percent) {
+    const clamped = Math.max(0, Math.min(100, percent));
+    const offset = AION_CIRCUMFERENCE - (AION_CIRCUMFERENCE * clamped / 100);
+    aionRing.style.strokeDashoffset = offset;
+    aionPercent.textContent = clamped + '%';
+
+    if (clamped >= 80) {
+      aionRing.style.stroke = '#34d399'; // verde
+    } else if (clamped >= 50) {
+      aionRing.style.stroke = '#22d3ee'; // cian
+    } else {
+      aionRing.style.stroke = '#f87171'; // rojo
+    }
+  }
+
+  function setKairos(state) {
+    kairosCore.classList.remove('pulse-fast');
+    if (state === 'positivo') {
+      document.documentElement.style.setProperty('--kairos-color', '#34d399');
+      document.documentElement.style.setProperty('--kairos-glow', 'rgba(52, 211, 153, 0.6)');
+      kairosLabel.textContent = 'Momento oportuno validado';
+    } else if (state === 'alerta') {
+      document.documentElement.style.setProperty('--kairos-color', '#f87171');
+      document.documentElement.style.setProperty('--kairos-glow', 'rgba(248, 113, 113, 0.65)');
+      kairosLabel.textContent = 'Alerta: decisión prematura';
+      kairosCore.classList.add('pulse-fast');
+    } else if (state === 'cuestionable') {
+      document.documentElement.style.setProperty('--kairos-color', '#fbbf24');
+      document.documentElement.style.setProperty('--kairos-glow', 'rgba(251, 191, 36, 0.6)');
+      kairosLabel.textContent = 'Momento manipulado';
+    } else {
+      document.documentElement.style.setProperty('--kairos-color', '#38bdf8');
+      document.documentElement.style.setProperty('--kairos-glow', 'rgba(56, 189, 248, 0.55)');
+      kairosLabel.textContent = 'Momento oportuno';
+    }
+  }
+
+  function setChronosFriction(percentWidth, leftPos, visible) {
+    chronosFriction.style.width = percentWidth + '%';
+    chronosFriction.style.left = leftPos + '%';
+    chronosFriction.style.opacity = visible ? '0.85' : '0';
+  }
+
+  function flashStatus(message) {
+    statusText.innerHTML = 'Estado actual: <span class="font-semibold">' + message + '</span>';
+    statusBanner.classList.remove('status-flash');
+    void statusBanner.offsetWidth; // reinicia la animación
+    statusBanner.classList.add('status-flash');
+  }
+
+  // ---------- CATÁLOGO DE PRÁCTICAS ----------
+  const PRACTICES = [
+
+    // ===== CHRONOS · Decisiones saludables =====
+    {
+      id: 'cs1', group: 'chronos', type: 'saludable',
+      title: 'Corte vertical de historias (Vertical Slicing)',
+      desc: 'Dividir las entregas en piezas pequeñas y funcionales que agreguen valor diario en lugar de acumular el 100% del trabajo al final del sprint.',
+      kairos: 'positivo', aion: 85, frictionWidth: 6, frictionLeft: 10, frictionVisible: false,
+      note: 'El valor se libera de forma continua: no hay acumulación de trabajo al cierre del sprint.'
+    },
+    {
+      id: 'cs2', group: 'chronos', type: 'saludable',
+      title: 'Adherencia estricta al Definition of Done (DoD)',
+      desc: 'Prohibir el cierre artificial de historias sin pruebas completas, eliminando las re-estimaciones de última hora.',
+      kairos: 'positivo', aion: 90, frictionWidth: 0, frictionLeft: 10, frictionVisible: false,
+      note: 'Sin fricción oculta: cada historia cerrada cumple realmente su definición de terminado.'
+    },
+    {
+      id: 'cs3', group: 'chronos', type: 'saludable',
+      title: 'Límites de Trabajo en Progreso (WIP Limits)',
+      desc: 'Restringir la cantidad de tareas simultáneas por desarrollador para acelerar el tiempo de ciclo y visibilizar bloqueos a tiempo.',
+      kairos: 'positivo', aion: 80, frictionWidth: 8, frictionLeft: 55, frictionVisible: true,
+      note: 'Los bloqueos se detectan temprano gracias a los límites de trabajo en progreso.'
+    },
+
+    // ===== CHRONOS · Anti-patrones =====
+    {
+      id: 'ca1', group: 'chronos', type: 'cuestionable',
+      title: 'Efecto "Water-Scrum-Fall"',
+      desc: 'Acumular el 100% de la integración y entrega el último día del sprint, manteniendo un Burndown plano durante la mayor parte de la iteración.',
+      kairos: 'cuestionable', aion: 40, frictionWidth: 60, frictionLeft: 10, frictionVisible: true,
+      note: 'Burndown plano: todo el trabajo se concentra artificialmente al final del sprint.',
+      alert: true, alertTitle: 'Alerta: efecto Water-Scrum-Fall',
+      alertMsg: 'El equipo mantiene un Burndown plano casi todo el sprint y concentra la integración al final, ocultando el verdadero avance real hasta el último momento.'
+    },
+    {
+      id: 'ca2', group: 'chronos', type: 'cuestionable',
+      title: 'Aumento descontrolado de alcance (Scope Creep)',
+      desc: 'Aceptar peticiones o requisitos adicionales dentro del sprint activo sin renegociar el compromiso previo ni ajustar el objetivo.',
+      kairos: 'cuestionable', aion: 45, frictionWidth: 50, frictionLeft: 20, frictionVisible: true,
+      note: 'El alcance creció sin renegociar el compromiso original: el sprint pierde foco.',
+      alert: true, alertTitle: 'Alerta: Scope Creep detectado',
+      alertMsg: 'Se aceptaron requisitos adicionales dentro del sprint activo sin renegociar el compromiso, comprometiendo la meta ya acordada con el equipo.'
+    },
+    {
+      id: 'ca3', group: 'chronos', type: 'cuestionable',
+      title: 'Re-estimar historias el último día de sprint',
+      desc: 'Ajustar retroactivamente los puntos de historia al cierre del sprint para maquillar la velocidad reportada.',
+      kairos: 'cuestionable', aion: 38, frictionWidth: 42, frictionLeft: 30, frictionVisible: true,
+      note: 'La barra de Chronos fue ajustada artificialmente al final del sprint.',
+      alert: true, alertTitle: 'Alerta: manipulación de métricas detectada',
+      alertMsg: 'Re-estimar historias el último día del sprint distorsiona el Chronos real: el equipo aparenta más velocidad de la que efectivamente entregó, erosionando la confianza (Aion) a largo plazo.'
+    },
+
+    // ===== KAIROS · Decisiones saludables =====
+    {
+      id: 'ks1', group: 'kairos', type: 'saludable',
+      title: 'Lanzamiento de MVP Seguro (FAQ/Triage)',
+      desc: 'Acotar el alcance para cumplir con la fecha objetivo mediante funcionalidades sencillas, postergando los módulos de alto riesgo para una fase posterior.',
+      kairos: 'positivo', aion: 75, frictionWidth: 10, frictionLeft: 15, frictionVisible: false,
+      note: 'El alcance se ajustó con criterio: se prioriza lo esencial y se posterga el riesgo.'
+    },
+    {
+      id: 'ks2', group: 'kairos', type: 'saludable',
+      title: 'Validar salud mental con Bienestar',
+      desc: 'Agendar mesas periódicas con áreas de gobernanza (como Bienestar Universitario) antes de liberar código a producción.',
+      kairos: 'positivo', aion: 95, frictionWidth: 0, frictionLeft: 15, frictionVisible: false,
+      note: 'Fricción eliminada: el equipo validó con gobernanza antes de avanzar.'
+    },
+    {
+      id: 'ks3', group: 'kairos', type: 'saludable',
+      title: 'Pivote o cancelación de Sprint',
+      desc: 'Re-planificar formalmente el trabajo cuando las prioridades de la organización cambian, evitando sobrecargar al equipo con metas desalineadas.',
+      kairos: 'positivo', aion: 85, frictionWidth: 5, frictionLeft: 15, frictionVisible: false,
+      note: 'El sprint se replanificó formalmente: no hay sobrecarga por metas desalineadas.'
+    },
+
+    // ===== KAIROS · Anti-patrones =====
+    {
+      id: 'ka1', group: 'kairos', type: 'riesgo',
+      title: 'Lanzar módulo sin validación para mostrar avance',
+      desc: 'Liberar módulos críticos o sensibles a producción sin la revisión formal de las áreas expertas, solo para aparentar avance.',
+      kairos: 'alerta', aion: 30, frictionWidth: 45, frictionLeft: 25, frictionVisible: true,
+      note: 'Fricción crítica acumulada: el módulo avanzó sin validación y generó deuda técnica visible.'
+    },
+    {
+      id: 'ka2', group: 'kairos', type: 'riesgo',
+      title: 'Acumulación sistemática de deuda técnica',
+      desc: 'Aceptar atajos en la arquitectura o prescindir de pruebas para cumplir fechas artificiales, postergando fallas críticas para el futuro.',
+      kairos: 'alerta', aion: 20, frictionWidth: 55, frictionLeft: 20, frictionVisible: true,
+      note: 'Deuda técnica acumulada: los atajos de hoy serán las fallas críticas de mañana.'
+    },
+    {
+      id: 'ka3', group: 'kairos', type: 'cuestionable',
+      title: 'Sobreasignación por Product Ownership compartida',
+      desc: 'Que el Product Owner fuerce entregables desmedidos en simultáneo sobre varios equipos, creando cuellos de botella y variaciones drásticas en la velocidad.',
+      kairos: 'cuestionable', aion: 35, frictionWidth: 50, frictionLeft: 18, frictionVisible: true,
+      note: 'Cuellos de botella detectados: la sobreasignación distorsiona la velocidad real.',
+      alert: true, alertTitle: 'Alerta: sobreasignación de Product Ownership',
+      alertMsg: 'Un mismo Product Owner fuerza entregables desmedidos sobre varios equipos a la vez, generando cuellos de botella y variaciones drásticas de velocidad difíciles de explicar.'
+    },
+
+    // ===== AION · Decisiones saludables =====
+    {
+      id: 'as1', group: 'aion', type: 'saludable',
+      title: 'Retrospectivas orientadas a procesos',
+      desc: 'Enfocar el análisis de errores en las fallas del sistema o del entorno en lugar de señalar responsabilidades individuales.',
+      kairos: 'positivo', aion: 90, frictionWidth: 10, frictionLeft: 20, frictionVisible: false,
+      note: 'El equipo aprende del sistema, no del miedo a señalar culpables.'
+    },
+    {
+      id: 'as2', group: 'aion', type: 'saludable',
+      title: 'Mentoría gradual en gestión de conflictos',
+      desc: 'Guiar al Scrum Master Junior mediante coaching y acompañamiento en sombra sin reemplazar su rol.',
+      kairos: 'positivo', aion: 85, frictionWidth: 10, frictionLeft: 20, frictionVisible: false,
+      note: 'El liderazgo se fortalece de forma gradual, sin sustituir su rol.'
+    },
+    {
+      id: 'as3', group: 'aion', type: 'saludable',
+      title: 'Capacidad reservada para Deuda Técnica e IA',
+      desc: 'Destinar un porcentaje fijo de la capacidad del sprint para refactorización de código, pruebas automáticas y uso de herramientas de automatización.',
+      kairos: 'positivo', aion: 88, frictionWidth: 8, frictionLeft: 20, frictionVisible: false,
+      note: 'Se reserva capacidad real para sostener la calidad técnica a largo plazo.'
+    },
+
+    // ===== AION · Anti-patrones =====
+    {
+      id: 'aa1', group: 'aion', type: 'riesgo',
+      title: 'Señalamiento público en Retrospectivas',
+      desc: 'Permitir que las sesiones de retroalimentación se utilicen para buscar culpables individuales por los retrasos en vez de analizar las fallas del proceso.',
+      kairos: 'alerta', aion: 15, frictionWidth: 35, frictionLeft: 20, frictionVisible: true,
+      note: 'La confianza del equipo se erosiona cuando se buscan culpables en vez de causas.',
+      alert: true, alertTitle: 'Alerta: cultura de señalamiento',
+      alertMsg: 'Las retrospectivas se están usando para señalar responsables individuales en lugar de analizar fallas del proceso, dañando la seguridad psicológica del equipo.'
+    },
+    {
+      id: 'aa2', group: 'aion', type: 'cuestionable',
+      title: 'Suplantación de rol ("Salvadorismo")',
+      desc: 'Que el mentor asuma y resuelva los conflictos interpersonales directamente en lugar de coachear al Scrum Master para que lidere la facilitación.',
+      kairos: 'cuestionable', aion: 40, frictionWidth: 20, frictionLeft: 25, frictionVisible: true,
+      note: 'El rol se debilita: el mentor resuelve en lugar de formar.',
+      alert: true, alertTitle: 'Alerta: suplantación de rol',
+      alertMsg: 'El mentor está resolviendo los conflictos directamente en lugar de acompañar al Scrum Master a liderarlos, impidiendo que desarrolle su propio criterio.'
+    },
+    {
+      id: 'aa3', group: 'aion', type: 'riesgo',
+      title: 'Uso de IA para maquillaje de datos',
+      desc: 'Emplear herramientas de IA para disfrazar métricas de rendimiento o delegar en algoritmos la mediación humana y el juicio en áreas delicadas.',
+      kairos: 'alerta', aion: 10, frictionWidth: 55, frictionLeft: 15, frictionVisible: true,
+      note: 'Las métricas ya no reflejan la realidad: la IA se usó para disfrazar el desempeño.',
+      alert: true, alertTitle: 'Alerta: uso no ético de IA',
+      alertMsg: 'Se está usando IA para disfrazar métricas de rendimiento o para reemplazar el juicio humano en decisiones delicadas, sustituyendo la mediación y el criterio de las personas.'
+    }
+  ];
+
+  const TYPE_STYLES = {
+    saludable: { bg: 'bg-emerald-950/40 hover:bg-emerald-900/50', border: 'border-emerald-700/50', text: 'text-emerald-400', icon: '✔', label: 'Decisión saludable' },
+    riesgo: { bg: 'bg-red-950/40 hover:bg-red-900/50', border: 'border-red-700/50', text: 'text-red-400', icon: '⚠', label: 'Decisión de riesgo' },
+    cuestionable: { bg: 'bg-amber-950/40 hover:bg-amber-900/50', border: 'border-amber-700/50', text: 'text-amber-400', icon: '↻', label: 'Decisión cuestionable' }
+  };
+
+  // ---------- RENDERIZADO DE TARJETAS ----------
+  function cardHTML(p) {
+    const s = TYPE_STYLES[p.type];
+    return `
+      <button data-id="${p.id}" class="practice-card sim-btn text-left ${s.bg} border ${s.border} rounded-xl p-4 shadow-lg w-full h-full flex flex-col">
+        <span class="block ${s.text} font-bold mb-1 text-xs sm:text-sm">${s.icon} ${s.label}</span>
+        <span class="block text-sm font-semibold text-slate-100 mb-1">${p.title}</span>
+        <span class="block text-xs text-slate-400 leading-snug">${p.desc}</span>
+      </button>`;
+  }
+
+  function renderPractices() {
+    const groups = ['chronos', 'kairos', 'aion'];
+    const kinds = {
+      saludable: 'saludable',
+    };
+    groups.forEach(group => {
+      const saludableItems = PRACTICES.filter(p => p.group === group && p.type === 'saludable');
+      const antiItems = PRACTICES.filter(p => p.group === group && p.type !== 'saludable');
+      const saludableContainer = document.getElementById(`grid-${group}-saludable`);
+      const antiContainer = document.getElementById(`grid-${group}-anti`);
+      if (saludableContainer) saludableContainer.innerHTML = saludableItems.map(cardHTML).join('');
+      if (antiContainer) antiContainer.innerHTML = antiItems.map(cardHTML).join('');
+    });
+
+    document.querySelectorAll('.practice-card').forEach(card => {
+      card.addEventListener('click', () => applyPractice(card.dataset.id));
+    });
+  }
+
+  // ---------- APLICAR PRÁCTICA SELECCIONADA ----------
+  function applyPractice(id) {
+    const p = PRACTICES.find(item => item.id === id);
+    if (!p) return;
+
+    setKairos(p.kairos);
+    setAion(p.aion);
+    setChronosFriction(p.frictionWidth, p.frictionLeft, p.frictionVisible);
+    chronosNote.textContent = p.note;
+
+    if (p.alert) {
+      alertTitle.textContent = p.alertTitle;
+      alertMsg.textContent = p.alertMsg;
+      metricAlert.classList.remove('hidden');
+      metricAlert.classList.remove('fade-in');
+      void metricAlert.offsetWidth;
+      metricAlert.classList.add('fade-in');
+    } else {
+      metricAlert.classList.add('hidden');
+    }
+
+    document.querySelectorAll('.practice-card').forEach(c => c.classList.remove('card-active'));
+    const activeCard = document.querySelector(`.practice-card[data-id="${id}"]`);
+    if (activeCard) activeCard.classList.add('card-active');
+
+    const s = TYPE_STYLES[p.type];
+    flashStatus(`<span class="${s.text}">${s.label}</span> — ${p.title}`);
+  }
+
+  // ---------- PESTAÑAS ----------
+  function switchTab(target) {
+    tabButtons.forEach(btn => {
+      btn.classList.toggle('tab-active', btn.dataset.tab === target);
+    });
+    tabPanels.forEach(panel => {
+      panel.classList.toggle('hidden', panel.dataset.panel !== target);
+    });
+  }
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  renderPractices();
+  switchTab('chronos');
+
+  // ---------- PWA: REGISTRO DEL SERVICE WORKER ----------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch((err) => {
+        console.log('No se pudo registrar el service worker:', err);
+      });
+    });
+  }
+
+  // ---------- PWA: INSTALACIÓN (Android / Chrome / Desktop) ----------
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    btnInstall.classList.remove('hidden');
+    btnInstall.classList.add('flex');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    btnInstall.classList.add('hidden');
+    flashStatus('<span class="text-emerald-400">App instalada</span> — ya puedes abrir Tempo-Concetto desde tu pantalla de inicio');
+  });
+
+  // ---------- PWA: INSTRUCCIONES MANUALES PARA iOS (Safari) ----------
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if (isIOS && !isInStandaloneMode) {
+    btnInstall.classList.remove('hidden');
+    btnInstall.classList.add('flex');
+  }
+
+  btnInstall.addEventListener('click', async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      if (choice.outcome === 'accepted') {
+        btnInstall.classList.add('hidden');
+      }
+      return;
+    }
+
+    if (isIOS) {
+      flashStatus('<span class="text-sky-400">Para instalar en iPhone/iPad:</span> toca el botón Compartir y luego "Agregar a pantalla de inicio"');
+      return;
+    }
+
+    flashStatus('<span class="text-slate-300">Instalación disponible</span> desde el menú del navegador ("Agregar a pantalla de inicio" o el ícono de instalación en la barra de direcciones)');
+  });
+
+  // ---------- BOTÓN RESET: Volver a Equilibrio inicial ----------
+  function resetToInitialState() {
+    setKairos('neutro');
+    setAion(45);
+    setChronosFriction(15, 30, true);
+    chronosFriction.style.opacity = '0.4';
+    chronosNote.textContent = 'La zona rayada indica fricción o deuda técnica acumulada dentro del sprint.';
+    metricAlert.classList.add('hidden');
+    statusText.innerHTML = 'Estado actual: <span class="text-sky-400 font-semibold">Equilibrio inicial</span>. Elige una decisión abajo para simular su impacto.';
+    statusBanner.classList.remove('status-flash');
+    void statusBanner.offsetWidth;
+    statusBanner.classList.add('status-flash');
+  }
+
+  btnReset.addEventListener('click', resetToInitialState);
+
+  // ---------- MODAL ----------
+  function openModal() {
+    modalOverlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModalFn() {
+    modalOverlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  btnFilosofico.addEventListener('click', openModal);
+  closeModal.addEventListener('click', closeModalFn);
+  closeModalBtn.addEventListener('click', closeModalFn);
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModalFn();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) closeModalFn();
+  });
+
+  // ---------- ESTADO INICIAL ----------
+  setAion(45);
+  setKairos('neutro');
+</script>
+</body>
+</html>
